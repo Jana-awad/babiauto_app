@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'features/auth/presentation/splash_screen.dart';
+import 'features/auth/presentation/login_screen.dart';
+import 'features/home/presentation/home_screen.dart';
+import 'features/auth/presentation/register_screen.dart';
 void main() {
-  runApp(const MyApp());
+  runApp(const ProviderScope(child: BabiAutoApp()));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class BabiAutoApp extends StatelessWidget {
+  const BabiAutoApp({Key?key}):super(key:key);
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'BabiAuto',
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -28,10 +32,17 @@ class MyApp extends StatelessWidget {
         //
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
+        primarySwatch: Colors.indigo),
+        initialRoute: '/splash',
+        routes: {
+          '/splash': (context) => const SplashScreen(),
+          '/login': (context) => const LoginScreen(),
+          '/home': (context) => const HomeScreen(),
+          '/register': (context) => const RegisterScreen(),
+        },
+      );
+    //  home: const MyHomePage(title: 'Flutter Demo Home Page'),
+    
   }
 }
 
