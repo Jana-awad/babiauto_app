@@ -18,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     setState(() { _loading = true; _error = null; });
     try {
-      await _authRepo.loginAndStore(_emailC.text, _passC.text);
+      await _authRepo.login(_emailC.text, _passC.text);
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {

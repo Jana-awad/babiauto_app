@@ -1,30 +1,44 @@
-import 'auth_service.dart';
-// Update the import path if the file exists elsewhere, for example:
-import '/core/token_storage.dart';
-// Or create the file at lib/features/auth/core/token_storage.dart if it does not exist.
+import 'package:babiauto_app/core/api_client.dart';
+import 'package:babiauto_app/core/token_storage.dart';
+
 
 class AuthRepository {
-  final AuthService _service = AuthService();
-  final TokenStorage _storage = TokenStorage();
+  final ApiClient apiClient = ApiClient();
+  final TokenStorage tokenStorage = TokenStorage();
 
-  Future<String> loginAndStore(String email, String password) async {
-    final token = await _service.login(email, password);
-    await _storage.saveToken(token);
-    return token;
-  }
-  Future<bool> register(String name, String email, String password) async {
-    final token = await _service.register(name, email, password);
-    if (token != null) {
-      await _storage.saveToken(token);
-      return true;
+  Future<bool> login(String email, String password) async {
+    try {
+      final response = await apiClient.post('login', {'email': email, 'password': password});
+      if (response['token'] != null) {
+        await tokenStorage.saveToken(response['token']);
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      throw Exception('Login failed: $e');
     }
-    return false;
   }
 
+  Future<bool> register(String name, String email, String password) async {
+    try {
+      final response = await apiClient.post('register', {'name': name, 'email': email, 'password': password});
+      if (response['token'] != null) {
+        await tokenStorage.saveToken(response['token']);
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      throw Exception('Register failed: $e');
+    }
+  }
 
   Future<void> logout() async {
-    await _storage.clearToken();
+    await tokenStorage.clearToken();
   }
 
-  Future<String?> currentToken() => _storage.getToken();
+  Future<String?> currentToken() async {
+    return tokenStorage.getToken();
+  }
 }
