@@ -1,31 +1,3 @@
-// import 'package:babiauto_app/core/api_client.dart';
-
-// class VehicleRepository {
-//   final ApiClient apiClient = ApiClient();
-
-//   // Get list of all vehicles
-//   Future<List<Map<String, dynamic>>> getVehicles() async {
-//     final response = await apiClient.get('vehicles');
-
-//     // Laravel returns a plain list, so we just cast it
-//     if (response is List) {
-//       return List<Map<String, dynamic>>.from(response);
-//     } else {
-//       throw Exception('Unexpected API response format: $response');
-//     }
-//   }
-
-//   // Get details of a single vehicle
-//   Future<Map<String, dynamic>> getVehicleDetails(int id) async {
-//     final response = await apiClient.get('vehicles/$id');
-
-//     if (response is Map<String, dynamic>) {
-//       return response;
-//     } else {
-//       throw Exception('Unexpected API response format: $response');
-//     }
-//   }
-// }
 import 'package:babiauto_app/core/api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
