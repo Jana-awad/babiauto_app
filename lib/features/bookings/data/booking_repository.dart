@@ -1,0 +1,63 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'booking_model.dart';
+
+class BookingRepository {
+  final String baseUrl = 'http://10.0.2.2:8000/api'; // your local API URL
+
+  // Fetch bookings by user ID
+  Future<List<Booking>> getBookingsByUser(int userId, String token) async {
+    final url = Uri.parse('$baseUrl/users/$userId/bookings');
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token', // if using sanctum/jwt
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) => Booking.fromJson(json)).toList();
+    } else {
+      print('Failed to load bookings: ${response.body}');
+      return [];
+    }
+  }
+
+  // Create booking (same as before)
+  Future<Booking?> createBooking({
+    required int userId,
+    required int vehicleId,
+    required String startDate,
+    required String endDate,
+    required String totalPrice,
+    required String status,
+    required String token,
+  }) async {
+    final url = Uri.parse('$baseUrl/bookings');
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'user_id': userId,
+        'vehicle_id': vehicleId,
+        'start_date': startDate,
+        'end_date': endDate,
+        'total_price': totalPrice,
+        'status': status,
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      return Booking.fromJson(data);
+    } else {
+      print('Booking creation failed: ${response.body}');
+      return null;
+    }
+  }
+}

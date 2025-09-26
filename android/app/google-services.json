@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "845430286993",
+    "project_id": "babiautoapp",
+    "storage_bucket": "babiautoapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:845430286993:android:ca9c67fb65dcffb1352d30",
+        "android_client_info": {
+          "package_name": "com.babiauto.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCC_BDFVGd6NB2Ey_eycHMbwCMOX7iFmGI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
