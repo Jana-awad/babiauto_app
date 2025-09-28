@@ -1,3 +1,5 @@
+import 'package:babiauto_app/core/api_client.dart';
+import 'package:babiauto_app/core/token_storage.dart';
 import 'package:flutter/material.dart';
 import '../data/auth_repository.dart';
 
@@ -12,7 +14,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authRepo = AuthRepository();
+  final _authRepo = AuthRepository(
+    apiClient: ApiClient(),
+    tokenStorage: TokenStorage(),
+  );
 
   bool _loading = false;
   String? _error;
@@ -109,9 +114,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _emailController,
                       decoration: _inputDecoration("Email", Icons.email),
-                      validator: (value) => value == null || value.isEmpty
-                          ? "Enter your email"
-                          : null,
+
+                      validator: (value) {
+                        if (value == null || value.isEmpty)
+                          return "Enter your email";
+                        if (!value.contains('@')) return "Enter a valid email";
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
 

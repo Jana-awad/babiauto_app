@@ -1,3 +1,5 @@
+import 'package:babiauto_app/core/api_client.dart';
+import 'package:babiauto_app/core/token_storage.dart';
 import 'package:flutter/material.dart';
 import '../../auth/data/auth_repository.dart';
 
@@ -9,7 +11,10 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  final AuthRepository _authRepo = AuthRepository();
+  final AuthRepository _authRepo = AuthRepository(
+    apiClient: ApiClient(),
+    tokenStorage: TokenStorage(),
+  );
 
   @override
   void initState() {

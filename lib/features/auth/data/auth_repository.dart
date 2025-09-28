@@ -2,11 +2,14 @@ import 'dart:convert';
 import 'package:babiauto_app/core/api_client.dart';
 import 'package:babiauto_app/core/token_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http; // FIX: Import http
+import 'package:http/http.dart' as http;
 
 class AuthRepository {
-  final ApiClient apiClient = ApiClient();
-  final TokenStorage tokenStorage = TokenStorage();
+  final ApiClient apiClient;
+  final TokenStorage tokenStorage;
+
+  // Constructor: dependencies must be passed
+  AuthRepository({required this.apiClient, required this.tokenStorage});
 
   // LOGIN
   Future<bool> login(String email, String password) async {
@@ -55,7 +58,7 @@ class AuthRepository {
   Future<void> logout() async {
     await tokenStorage.clearToken();
     final prefs = await SharedPreferences.getInstance();
-    prefs.remove('cached_user'); // clear cached profile
+    prefs.remove('cached_user');
   }
 
   // GET CURRENT TOKEN
@@ -71,13 +74,11 @@ class AuthRepository {
     try {
       final response = await apiClient.get('profile', token: token);
 
-      // Cache locally for offline use
       final prefs = await SharedPreferences.getInstance();
       prefs.setString('cached_user', json.encode(response));
 
       return response;
     } catch (e) {
-      // If API fails, return cached data
       return await currentUserCached();
     }
   }
@@ -107,7 +108,6 @@ class AuthRepository {
 
       final response = await apiClient.put('profile', data, token: token);
 
-      // Update cached profile
       final prefs = await SharedPreferences.getInstance();
       prefs.setString('cached_user', json.encode(response));
 
@@ -117,18 +117,16 @@ class AuthRepository {
     }
   }
 
-  // SAVE DEVICE TOKEN (for push notifications)
+  // SAVE DEVICE TOKEN
   Future<void> saveDeviceToken(String fcmToken) async {
-    final token = await currentToken(); // get auth token
+    final token = await currentToken();
     if (token == null) throw Exception("Not authenticated");
 
     final response = await http.post(
-      Uri.parse(
-        "http://192.168.10.100:8000/api/save-device-token",
-      ), // 🔹 Replace with your backend URL
+      Uri.parse("http://192.168.10.100:8000/api/save-device-token"),
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer $token", // 🔹 Pass user token for auth:sanctum
+        "Authorization": "Bearer $token",
       },
       body: jsonEncode({"token": fcmToken}),
     );

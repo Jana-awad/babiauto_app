@@ -1,3 +1,5 @@
+import 'package:babiauto_app/core/api_client.dart';
+import 'package:babiauto_app/core/token_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../auth/data/auth_repository.dart';
@@ -26,7 +28,10 @@ class _BookingScreenState extends State<BookingScreen> {
   DateTime? _endDate;
   bool _loading = false;
   String? _error;
-  final AuthRepository _authRepo = AuthRepository();
+  final AuthRepository _authRepo = AuthRepository(
+    apiClient: ApiClient(),
+    tokenStorage: TokenStorage(),
+  );
 
   int get totalDays => (_startDate != null && _endDate != null)
       ? _endDate!.difference(_startDate!).inDays

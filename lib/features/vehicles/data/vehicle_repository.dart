@@ -1,29 +1,27 @@
-import 'package:babiauto_app/core/api_client.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:babiauto_app/core/api_client.dart';
 
 class VehicleRepository {
-  final ApiClient apiClient = ApiClient();
+  final ApiClient apiClient;
 
-  // Get list of all vehicles
+  VehicleRepository({ApiClient? client}) : apiClient = client ?? ApiClient();
+
   Future<List<Map<String, dynamic>>> getVehicles() async {
     try {
       final response = await apiClient.get('vehicles');
 
-      // Laravel returns a plain list, so we just cast it
       if (response is List) {
         final vehicleList = List<Map<String, dynamic>>.from(response);
 
-        // Save to cache
         final prefs = await SharedPreferences.getInstance();
         prefs.setString('vehicles_cache', jsonEncode(vehicleList));
 
         return vehicleList;
       } else {
-        throw Exception('Unexpected API response format: $response');
+        throw Exception('Unexpected API response format');
       }
     } catch (e) {
-      // If API fails, try to get cached data
       final prefs = await SharedPreferences.getInstance();
       final cached = prefs.getString('vehicles_cache');
       if (cached != null) {
@@ -33,7 +31,6 @@ class VehicleRepository {
     }
   }
 
-  // Get details of a single vehicle
   Future<Map<String, dynamic>> getVehicleDetails(int id) async {
     try {
       final response = await apiClient.get('vehicles/$id');
@@ -41,10 +38,9 @@ class VehicleRepository {
       if (response is Map<String, dynamic>) {
         return response;
       } else {
-        throw Exception('Unexpected API response format: $response');
+        throw Exception('Unexpected API response format');
       }
     } catch (e) {
-      // Optionally, you can fetch the vehicle from cached list
       final prefs = await SharedPreferences.getInstance();
       final cached = prefs.getString('vehicles_cache');
       if (cached != null) {

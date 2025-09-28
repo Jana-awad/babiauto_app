@@ -1,3 +1,5 @@
+import 'package:babiauto_app/core/api_client.dart';
+import 'package:babiauto_app/core/token_storage.dart';
 import 'package:flutter/material.dart';
 import '../data/auth_repository.dart';
 
@@ -14,7 +16,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailC = TextEditingController();
   final _passC = TextEditingController();
   final _confirmC = TextEditingController();
-  final AuthRepository _authRepo = AuthRepository();
+  final AuthRepository _authRepo = AuthRepository(
+    apiClient: ApiClient(),
+    tokenStorage: TokenStorage(),
+  );
 
   bool _loading = false;
   String? _error;

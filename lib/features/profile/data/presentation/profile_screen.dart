@@ -1,3 +1,5 @@
+import 'package:babiauto_app/core/api_client.dart';
+import 'package:babiauto_app/core/token_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:babiauto_app/features/auth/data/auth_repository.dart';
 import 'package:babiauto_app/features/auth/presentation/edit_profile_screen.dart';
@@ -10,7 +12,10 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final AuthRepository _authRepo = AuthRepository();
+  final AuthRepository _authRepo = AuthRepository(
+    apiClient: ApiClient(),
+    tokenStorage: TokenStorage(),
+  );
   bool _loading = true;
   Map<String, dynamic>? _user;
   String? _error;

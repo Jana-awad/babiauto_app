@@ -3,16 +3,20 @@ import 'package:http/http.dart' as http;
 import 'booking_model.dart';
 
 class BookingRepository {
-  final String baseUrl = 'http://10.0.2.2:8000/api'; // your local API URL
+  final String baseUrl = 'http://10.0.2.2:8000/api';
+  final http.Client httpClient;
+
+  BookingRepository({http.Client? client})
+    : httpClient = client ?? http.Client();
 
   // Fetch bookings by user ID
   Future<List<Booking>> getBookingsByUser(int userId, String token) async {
     final url = Uri.parse('$baseUrl/users/$userId/bookings');
-    final response = await http.get(
+    final response = await httpClient.get(
       url,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token', // if using sanctum/jwt
+        'Authorization': 'Bearer $token',
       },
     );
 
@@ -20,12 +24,11 @@ class BookingRepository {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((json) => Booking.fromJson(json)).toList();
     } else {
-      print('Failed to load bookings: ${response.body}');
       return [];
     }
   }
 
-  // Create booking (same as before)
+  // Create booking
   Future<Booking?> createBooking({
     required int userId,
     required int vehicleId,
@@ -36,7 +39,7 @@ class BookingRepository {
     required String token,
   }) async {
     final url = Uri.parse('$baseUrl/bookings');
-    final response = await http.post(
+    final response = await httpClient.post(
       url,
       headers: {
         'Content-Type': 'application/json',
@@ -56,7 +59,6 @@ class BookingRepository {
       final data = jsonDecode(response.body);
       return Booking.fromJson(data);
     } else {
-      print('Booking creation failed: ${response.body}');
       return null;
     }
   }

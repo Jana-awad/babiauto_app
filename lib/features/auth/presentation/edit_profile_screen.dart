@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/auth_repository.dart';
+import 'package:babiauto_app/core/api_client.dart';
+import 'package:babiauto_app/core/token_storage.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -14,7 +16,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameC;
   late TextEditingController _emailC;
   late TextEditingController _phoneC;
-  final AuthRepository _authRepo = AuthRepository();
+
+  final AuthRepository _authRepo = AuthRepository(
+    apiClient: ApiClient(),
+    tokenStorage: TokenStorage(),
+  );
 
   bool _loading = false;
   String? _error;
@@ -38,10 +44,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
       if (!mounted) return;
 
-      Navigator.pop(
-        context,
-        updatedUser,
-      ); // Return updated user to ProfileScreen
+      Navigator.pop(context, updatedUser);
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
@@ -92,7 +95,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 decoration: _inputDecoration('Email', Icons.email),
                 validator: (v) => v!.contains('@') ? null : 'Enter valid email',
               ),
-
               const SizedBox(height: 20),
               if (_error != null)
                 Text(_error!, style: const TextStyle(color: Colors.red)),

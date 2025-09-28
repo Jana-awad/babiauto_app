@@ -1,3 +1,5 @@
+import 'package:babiauto_app/core/api_client.dart';
+import 'package:babiauto_app/core/token_storage.dart';
 import 'package:babiauto_app/features/profile/data/presentation/profile_screen.dart';
 import 'package:babiauto_app/main.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +17,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final AuthRepository _authRepo = AuthRepository();
+  final AuthRepository _authRepo = AuthRepository(
+    apiClient: ApiClient(),
+    tokenStorage: TokenStorage(),
+  );
   String? _userName;
 
   @override
