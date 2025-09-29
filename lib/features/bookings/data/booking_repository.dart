@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'booking_model.dart';
 
 class BookingRepository {
-  final String baseUrl = 'http://10.0.2.2:8000/api';
+  final String baseUrl = 'http://192.168.10.100:8000/api';
   final http.Client httpClient;
 
   BookingRepository({http.Client? client})

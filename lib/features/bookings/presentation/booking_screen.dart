@@ -3,8 +3,6 @@ import 'package:babiauto_app/core/token_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../auth/data/auth_repository.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'booking_history_screen.dart';
 
 class BookingScreen extends StatefulWidget {
@@ -28,6 +26,7 @@ class _BookingScreenState extends State<BookingScreen> {
   DateTime? _endDate;
   bool _loading = false;
   String? _error;
+
   final AuthRepository _authRepo = AuthRepository(
     apiClient: ApiClient(),
     tokenStorage: TokenStorage(),
@@ -84,38 +83,31 @@ class _BookingScreenState extends State<BookingScreen> {
       return;
     }
 
-    final url = Uri.parse('http://192.168.10.100:8000/api/bookings');
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${await _authRepo.currentToken()}',
-      },
-      body: json.encode({
+    try {
+      final response = await _authRepo.apiClient.post('bookings', {
         'vehicle_id': widget.vehicleId,
         'user_id': user['id'],
         'start_date': DateFormat('yyyy-MM-dd').format(_startDate!),
         'end_date': DateFormat('yyyy-MM-dd').format(_endDate!),
         'total_price': totalPrice.toStringAsFixed(2),
         'status': 'pending',
-      }),
-    );
+      });
 
-    setState(() => _loading = false);
+      setState(() => _loading = false);
 
-    if (response.statusCode == 201) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Booking successful!')));
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const BookingHistoryScreen()),
       );
-    } else {
-      setState(
-        () => _error =
-            'Booking failed: ${json.decode(response.body)['message'] ?? response.body}',
-      );
+    } catch (e) {
+      setState(() {
+        _loading = false;
+        _error = 'Booking failed: ${e.toString()}';
+      });
     }
   }
 
@@ -144,7 +136,7 @@ class _BookingScreenState extends State<BookingScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Start Date:', style: const TextStyle(fontSize: 16)),
+                const Text('Start Date:', style: TextStyle(fontSize: 16)),
                 Text(
                   DateFormat('yyyy-MM-dd').format(_startDate!),
                   style: const TextStyle(
@@ -158,7 +150,7 @@ class _BookingScreenState extends State<BookingScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('End Date:', style: const TextStyle(fontSize: 16)),
+                const Text('End Date:', style: TextStyle(fontSize: 16)),
                 Text(
                   DateFormat('yyyy-MM-dd').format(_endDate!),
                   style: const TextStyle(

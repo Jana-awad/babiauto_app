@@ -21,59 +21,26 @@ class _HomeScreenState extends State<HomeScreen> {
     apiClient: ApiClient(),
     tokenStorage: TokenStorage(),
   );
-  String? _userName;
+
+  // ValueNotifier for smooth updates
+  final ValueNotifier<String> _userNameNotifier = ValueNotifier<String>("User");
 
   @override
   void initState() {
     super.initState();
     _loadUser();
     _initPushNotifications();
-    FirebaseMessaging.instance.getInitialMessage().then((message) {
-      if (message != null) {
-        final screen = message.data['screen'];
-        if (!mounted) return;
-
-        switch (screen) {
-          case 'booking':
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const BookingHistoryScreen()),
-            );
-            break;
-
-          case 'vehicles':
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const VehicleListScreen()),
-            );
-            break;
-
-          case 'profile':
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
-            );
-            break;
-
-          default:
-            print("No navigation defined for screen: $screen");
-            break;
-        }
-      }
-    });
   }
 
   Future<void> _loadUser() async {
     final user = await _authRepo.currentUser();
-    setState(() {
-      _userName = user?['name'] ?? "User";
-    });
+    _userNameNotifier.value = user?['name'] ?? "User";
   }
 
   Future<void> _initPushNotifications() async {
     FirebaseMessaging messaging = FirebaseMessaging.instance;
 
-    // 1️⃣ Request permissions
+    // Request permissions
     NotificationSettings settings = await messaging.requestPermission(
       alert: true,
       badge: true,
@@ -81,41 +48,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      print('✅ Push notifications allowed');
       String? token = await messaging.getToken();
-      print('🔑 Device FCM Token: $token');
-      if (token != null) {
-        await _authRepo.saveDeviceToken(token);
-      }
-    } else {
-      print('❌ Push notifications not allowed');
+      if (token != null) await _authRepo.saveDeviceToken(token);
     }
 
-    // 2️⃣ Initialize flutter_local_notifications
-    await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(channel);
-
-    const InitializationSettings initializationSettings =
-        InitializationSettings(
-          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-        );
-
-    await flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        _handleMessageNavigation(response.payload);
-      },
-    );
-
-    // 3️⃣ Foreground messages
+    // Foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print(
-        "📩 Message received in foreground: ${message.notification?.title}",
-      );
-
       if (message.notification != null) {
         flutterLocalNotificationsPlugin.show(
           message.hashCode,
@@ -129,29 +67,23 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: '@mipmap/ic_launcher',
             ),
           ),
-          payload: message.data['screen'], // pass the screen name
+          payload: message.data['screen'],
         );
       }
     });
 
-    // 4️⃣ Background messages (app opened via notification)
+    // Background & terminated messages
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print("🚀 Notification tapped (background): ${message.data['screen']}");
       _handleMessageNavigation(message.data['screen']);
     });
 
-    FirebaseMessaging.instance.getInitialMessage().then((message) {
-      if (message != null && message.data['screen'] != null) {
-        print("🚀 Notification tapped (terminated): ${message.data['screen']}");
-        _handleMessageNavigation(
-          message.data['screen'],
-        ); // safe via navigatorKey
-      }
-    });
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      _handleMessageNavigation(initialMessage.data['screen']);
+    }
   }
 
   void _handleMessageNavigation(String? screen) {
-    print('Navigating to screen: $screen'); // Debug
     if (screen == null) return;
 
     switch (screen) {
@@ -169,9 +101,6 @@ class _HomeScreenState extends State<HomeScreen> {
         navigatorKey.currentState?.push(
           MaterialPageRoute(builder: (_) => const ProfileScreen()),
         );
-        break;
-      default:
-        print("No navigation defined for screen: $screen");
         break;
     }
   }
@@ -241,55 +170,61 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Column(
         children: [
           // Header
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.lightBlue.shade600, Colors.lightBlue.shade400],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          ValueListenableBuilder<String>(
+            valueListenable: _userNameNotifier,
+            builder: (_, userName, __) => Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.lightBlue.shade600,
+                    Colors.lightBlue.shade400,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.shade400,
+                    offset: const Offset(0, 3),
+                    blurRadius: 6,
+                  ),
+                ],
               ),
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Welcome,",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 20,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    userName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "Your trusted car rental app",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.shade400,
-                  offset: const Offset(0, 3),
-                  blurRadius: 6,
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Welcome,",
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 20,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _userName ?? '',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  "Your trusted car rental app",
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 14,
-                  ),
-                ),
-              ],
             ),
           ),
 
@@ -302,36 +237,30 @@ class _HomeScreenState extends State<HomeScreen> {
                 _buildMenuCard(
                   icon: Icons.directions_car,
                   title: "Browse Vehicles",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const VehicleListScreen(),
-                      ),
-                    );
-                  },
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const VehicleListScreen(),
+                    ),
+                  ),
                 ),
                 _buildMenuCard(
                   icon: Icons.book_online,
                   title: "My Bookings",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const BookingHistoryScreen(),
-                      ),
-                    );
-                  },
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const BookingHistoryScreen(),
+                    ),
+                  ),
                 ),
                 _buildMenuCard(
                   icon: Icons.person,
                   title: "Profile",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                    );
-                  },
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                  ),
                 ),
                 _buildMenuCard(
                   icon: Icons.logout,
@@ -348,6 +277,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+// Local Notifications
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 

@@ -22,7 +22,9 @@ class ApiClient {
       if (authToken != null) 'Authorization': 'Bearer $authToken',
     };
 
-    final response = await httpClient.get(url, headers: headers);
+    final response = await httpClient
+        .get(url, headers: headers)
+        .timeout(const Duration(seconds: 15));
     return _processResponse(response);
   }
 
@@ -40,11 +42,9 @@ class ApiClient {
       if (authToken != null) 'Authorization': 'Bearer $authToken',
     };
 
-    final response = await httpClient.post(
-      url,
-      headers: headers,
-      body: jsonEncode(body),
-    );
+    final response = await httpClient
+        .post(url, headers: headers, body: jsonEncode(body))
+        .timeout(const Duration(seconds: 15));
     return _processResponse(response);
   }
 
@@ -62,11 +62,9 @@ class ApiClient {
       if (authToken != null) 'Authorization': 'Bearer $authToken',
     };
 
-    final response = await httpClient.put(
-      url,
-      headers: headers,
-      body: jsonEncode(body),
-    );
+    final response = await httpClient
+        .put(url, headers: headers, body: jsonEncode(body))
+        .timeout(const Duration(seconds: 15));
     return _processResponse(response);
   }
 
@@ -80,7 +78,9 @@ class ApiClient {
       if (authToken != null) 'Authorization': 'Bearer $authToken',
     };
 
-    final response = await httpClient.delete(url, headers: headers);
+    final response = await httpClient
+        .delete(url, headers: headers)
+        .timeout(const Duration(seconds: 15));
     return _processResponse(response);
   }
 

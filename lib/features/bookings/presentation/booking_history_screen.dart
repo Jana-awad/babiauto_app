@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../auth/data/auth_repository.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+
+import '../data/booking_model.dart';
 
 class BookingHistoryScreen extends StatefulWidget {
   const BookingHistoryScreen({super.key});
@@ -19,88 +19,81 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
     apiClient: ApiClient(),
     tokenStorage: TokenStorage(),
   );
+
   bool _loading = true;
-  List<dynamic> _bookings = [];
+  List<Booking> _bookings = [];
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _fetchBookings();
+    _loadBookings();
   }
 
-  Future<void> _fetchBookings() async {
+  Future<void> _loadBookings() async {
     setState(() => _loading = true);
+
+    final token = await _authRepo.currentToken();
     final user = await _authRepo.currentUser();
 
-    if (user == null) {
+    if (token == null || user == null) {
       setState(() {
-        _error = 'You must be logged in';
+        _error = 'Please log in again';
         _loading = false;
       });
       return;
     }
 
-    final url = Uri.parse(
-      'http://192.168.10.100:8000/api/users/${user['id']}/bookings',
-    );
-
     try {
-      final response = await http.get(
-        url,
-        headers: {'Authorization': 'Bearer ${await _authRepo.currentToken()}'},
-      );
+      // Fetch all bookings (or backend may already filter)
+      final response = await ApiClient().get(
+        'bookings',
+        token: token,
+      ); // generic endpoint
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        setState(() {
-          _bookings = data;
-          _loading = false;
-          _error = null;
-        });
+      // Convert to Booking objects
+      final List<Booking> allBookings = (response as List)
+          .map((b) => Booking.fromJson(b))
+          .toList();
 
-        // Save bookings for offline use
-        final prefs = await SharedPreferences.getInstance();
-        prefs.setString('cached_bookings', json.encode(data));
-      } else {
-        // Load from cache if API fails
-        await _loadCachedBookings();
-      }
+      // Filter only current user bookings
+      final userBookings = allBookings
+          .where((b) => b.userId == user['id'])
+          .toList();
+
+      setState(() {
+        _bookings = userBookings;
+        _error = userBookings.isEmpty ? 'No bookings yet' : null;
+      });
+
+      // Save cache for offline
+      final prefs = await SharedPreferences.getInstance();
+      prefs.setString('cached_bookings', Booking.listToJson(userBookings));
     } catch (_) {
-      // Offline scenario: load cached bookings
+      // Load from cache if API fails
       await _loadCachedBookings();
+    } finally {
+      setState(() => _loading = false);
     }
   }
 
   Future<void> _loadCachedBookings() async {
     final prefs = await SharedPreferences.getInstance();
     final cached = prefs.getString('cached_bookings');
-
     if (cached != null) {
       setState(() {
-        _bookings = json.decode(cached);
-        _loading = false;
-        _error = null;
+        _bookings = Booking.listFromJson(cached);
+        _error = _bookings.isEmpty ? 'No bookings yet' : null;
       });
     } else {
       setState(() {
         _bookings = [];
-        _loading = false;
-        _error = null;
+        _error = 'No bookings yet';
       });
     }
   }
 
-  String _getVehicleName(Map<String, dynamic> booking) {
-    final vehicle = booking['vehicle'];
-    if (vehicle == null) return 'Unknown Vehicle';
-    final make = vehicle['make'] ?? '';
-    final model = vehicle['model'] ?? '';
-    return '$make $model'.trim();
-  }
-
-  String _formatDate(String? date) {
-    if (date == null) return 'N/A';
+  String _formatDate(String date) {
     try {
       final parsed = DateTime.parse(date);
       return DateFormat('MMM d, yyyy').format(parsed);
@@ -125,35 +118,26 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         title: const Text(
           'My Bookings',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        backgroundColor: Colors.lightBlue.shade700,
         iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 4,
+        backgroundColor: Colors.lightBlue.shade700,
       ),
+      backgroundColor: Colors.grey.shade100,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _bookings.isEmpty
-          ? const Center(
-              child: Text('No bookings yet', style: TextStyle(fontSize: 16)),
-            )
+          ? Center(child: Text(_error ?? 'No bookings yet'))
           : RefreshIndicator(
-              onRefresh: _fetchBookings,
+              onRefresh: _loadBookings,
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
                 itemCount: _bookings.length,
                 itemBuilder: (context, index) {
                   final booking = _bookings[index];
-                  final vehicleName = _getVehicleName(booking);
-                  final start = _formatDate(booking['start_date']);
-                  final end = _formatDate(booking['end_date']);
-                  final status = booking['status'] ?? 'unknown';
-                  final price = booking['total_price'] ?? '0.00';
-
                   return Card(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
@@ -169,7 +153,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                vehicleName,
+                                booking.vehicleName,
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -182,13 +166,15 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                                   vertical: 5,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _statusColor(status).withOpacity(0.2),
+                                  color: _statusColor(
+                                    booking.status,
+                                  ).withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  status.toUpperCase(),
+                                  booking.status.toUpperCase(),
                                   style: TextStyle(
-                                    color: _statusColor(status),
+                                    color: _statusColor(booking.status),
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -208,7 +194,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  Text(start),
+                                  Text(_formatDate(booking.startDate)),
                                 ],
                               ),
                               Column(
@@ -220,7 +206,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  Text(end),
+                                  Text(_formatDate(booking.endDate)),
                                 ],
                               ),
                               Column(
@@ -233,7 +219,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                                     ),
                                   ),
                                   Text(
-                                    '\$$price',
+                                    '\$${booking.totalPrice}',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.lightBlue.shade700,
